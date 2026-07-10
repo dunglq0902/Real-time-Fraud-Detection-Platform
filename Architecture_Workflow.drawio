@@ -1,0 +1,244 @@
+<mxfile host="app.diagrams.net" agent="Codex">
+  <diagram id="fraud-current-pipeline" name="Current Real-time Fraud Detection Platform">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=24;fontStyle=1;fontColor=#1f2937;align=left;verticalAlign=middle;" value="Real-time Fraud Detection Platform - Current Architecture" vertex="1">
+          <mxGeometry height="40" width="700" x="30" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="compose_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;fontSize=16;fontStyle=1;fillColor=#f8f9fa;strokeColor=#666666;spacingTop=10;" value="Docker Compose network: fraud-net" vertex="1">
+          <mxGeometry height="890" width="1540" x="30" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="source_label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#374151;align=center;" value="Producers" vertex="1">
+          <mxGeometry height="30" width="180" x="60" y="95" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka_label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#374151;align=center;" value="Kafka" vertex="1">
+          <mxGeometry height="30" width="230" x="270" y="95" as="geometry" />
+        </mxCell>
+        <mxCell id="flink_label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#374151;align=center;" value="Apache Flink Java Job" vertex="1">
+          <mxGeometry height="30" width="620" x="540" y="95" as="geometry" />
+        </mxCell>
+        <mxCell id="storage_label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#374151;align=center;" value="Analytics and Dashboard" vertex="1">
+          <mxGeometry height="30" width="300" x="1220" y="95" as="geometry" />
+        </mxCell>
+        <mxCell id="data_simulator" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="data-simulator&#xa;Python Kafka producer&#xa;EVENTS_PER_SECOND=500&#xa;FRAUD_RATIO=0.01" vertex="1">
+          <mxGeometry height="95" width="180" x="60" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka_init" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2f8;strokeColor=#6c8ebf;fontSize=11;" value="kafka-init&#xa;creates topics&#xa;transactions: 8 partitions&#xa;fraud-rules: 1&#xa;fraud-alerts: 3" vertex="1">
+          <mxGeometry height="105" width="180" x="60" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontSize=13;fontStyle=1;fillColor=#eef4ff;strokeColor=#6c8ebf;spacingTop=8;" value="Kafka 3.7.0 (KRaft)&#xa;broker/controller :9092/:9093" vertex="1">
+          <mxGeometry height="340" width="230" x="270" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="topic_transactions" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="transactions&#xa;raw transaction events" vertex="1">
+          <mxGeometry height="80" width="160" x="305" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="topic_rules" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="fraud-rules&#xa;dynamic JSON rules" vertex="1">
+          <mxGeometry height="80" width="160" x="305" y="305" as="geometry" />
+        </mxCell>
+        <mxCell id="topic_alerts" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="fraud-alerts&#xa;final ALERT/BLOCK stream&#xa;outbound topic" vertex="1">
+          <mxGeometry height="90" width="170" x="305" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="flink_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;fontSize=16;fontStyle=1;fillColor=#f5f5f5;strokeColor=#666666;spacingTop=10;" value="Flink cluster: JobManager :8081 + TaskManager&#xa;parallelism.default=8, task slots=8" vertex="1">
+          <mxGeometry height="690" width="620" x="540" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="source_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2f8;strokeColor=#6c8ebf;fontSize=11;" value="Kafka Sources&#xa;transactions group: fraud-detection-group&#xa;rules group: fraud-rules-group&#xa;event-time watermark: 5s" vertex="1">
+          <mxGeometry height="95" width="190" x="570" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="filter_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="FilterInvalidTransactions&#xa;drop null/invalid tx" vertex="1">
+          <mxGeometry height="70" width="170" x="590" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="rule_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" value="1. RulesEngine&#xa;Broadcast State&#xa;highest priority" vertex="1">
+          <mxGeometry height="75" width="170" x="590" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="cep_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" value="2. FraudPatternDetector&#xa;Flink CEP API&#xa;ATO, micro tx, velocity, impossible travel" vertex="1">
+          <mxGeometry height="95" width="190" x="820" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="merger_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="CepAlertMerger&#xa;join tx with CEP alerts" vertex="1">
+          <mxGeometry height="75" width="180" x="820" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="feature_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" value="FeatureAggregator&#xa;Keyed state + TTL&#xa;1h/24h counters, avg, distance&#xa;skip CRITICAL tx" vertex="1">
+          <mxGeometry height="95" width="190" x="590" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="ml_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" value="3. OnnxModelScorer&#xa;ONNX Runtime in JVM&#xa;loads fraud_detector.onnx once&#xa;skip CRITICAL tx" vertex="1">
+          <mxGeometry height="95" width="190" x="820" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="decision_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="DecisionMaker&#xa;priority: Rules &gt; CEP &gt; ML&#xa;outputs APPROVE / ALERT / BLOCK" vertex="1">
+          <mxGeometry height="95" width="190" x="930" y="185" as="geometry" />
+        </mxCell>
+        <mxCell id="alert_extractor" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="AlertExtractor&#xa;only ALERT/BLOCK&#xa;build final FraudAlert" vertex="1">
+          <mxGeometry height="80" width="170" x="950" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="checkpoint_node" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" value="Flink Checkpointing&#xa;60s, EXACTLY_ONCE&#xa;unaligned checkpoints&#xa;state backend: hashmap" vertex="1">
+          <mxGeometry height="95" width="170" x="950" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="submitter" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2f8;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" value="flink-job-submitter&#xa;runs fraud-detection-job jar&#xa;after Kafka topics and ML model are ready" vertex="1">
+          <mxGeometry height="95" width="190" x="570" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="ml_trainer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" value="ml-trainer&#xa;synthetic data -&gt; RandomForest&#xa;export ONNX&#xa;upload fraud_detector.onnx" vertex="1">
+          <mxGeometry height="105" width="190" x="60" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="minio_init" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" value="minio-init&#xa;creates buckets:&#xa;ml-models&#xa;flink-checkpoints&#xa;flink-savepoints" vertex="1">
+          <mxGeometry height="115" width="160" x="60" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="MinIO :9000/:9001&#xa;S3-compatible storage&#xa;models + checkpoints + savepoints" vertex="1">
+          <mxGeometry height="105" width="190" x="295" y="790" as="geometry" />
+        </mxCell>
+        <mxCell id="clickhouse_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontSize=14;fontStyle=1;fillColor=#fff5f5;strokeColor=#b85450;spacingTop=8;" value="ClickHouse 24.3&#xa;HTTP :8123, native :9004" vertex="1">
+          <mxGeometry height="410" width="300" x="1220" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_tx" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" value="fraud_detection.transactions&#xa;ReplacingMergeTree(decided_at)&#xa;all final decisions" vertex="1">
+          <mxGeometry height="95" width="210" x="1265" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_alerts" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" value="fraud_detection.fraud_alerts&#xa;ReplacingMergeTree(alert_time)&#xa;final actionable alerts" vertex="1">
+          <mxGeometry height="95" width="210" x="1265" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_views" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" value="Materialized views&#xa;tx_throughput&#xa;alerts_by_type&#xa;fraud_by_geo&#xa;latency_stats" vertex="1">
+          <mxGeometry height="105" width="210" x="1265" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="Grafana :3000&#xa;ClickHouse datasource&#xa;provisioned fraud dashboard" vertex="1">
+          <mxGeometry height="95" width="210" x="1265" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="exactly_once_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#9ca3af;fontSize=11;align=left;spacing=10;" value="Reliability notes&#xa;- Kafka offsets are committed through Flink checkpoints&#xa;- ClickHouse sinks buffer with checkpoint state&#xa;- ReplacingMergeTree deduplicates retry writes&#xa;- Result is near exactly-once for ClickHouse outputs" vertex="1">
+          <mxGeometry height="115" width="310" x="1215" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sim_tx" edge="1" parent="1" source="data_simulator" target="topic_transactions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="events">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sim_rules" edge="1" parent="1" source="data_simulator" target="topic_rules" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="rule messages">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="345" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_kafka_init" edge="1" parent="1" source="kafka_init" target="kafka_box" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;" value="create topics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tx_source" edge="1" parent="1" source="topic_transactions" target="source_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="KafkaSource">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rules_source" edge="1" parent="1" source="topic_rules" target="source_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="broadcast stream">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="345" />
+              <mxPoint x="520" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_source_filter" edge="1" parent="1" source="source_node" target="filter_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_filter_rules" edge="1" parent="1" source="filter_node" target="rule_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="keyBy accountId">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rules_cep" edge="1" parent="1" source="rule_node" target="cep_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="rules-enriched tx">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="735" y="457" />
+              <mxPoint x="735" y="348" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rules_merger" edge="1" parent="1" source="rule_node" target="merger_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cep_merger" edge="1" parent="1" source="cep_node" target="merger_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="CEP FraudAlert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_merger_features" edge="1" parent="1" source="merger_node" target="feature_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="910" y="535" />
+              <mxPoint x="685" y="535" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_features_ml" edge="1" parent="1" source="feature_node" target="ml_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="feature vector">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ml_decision" edge="1" parent="1" source="ml_node" target="decision_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="scored tx">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="608" />
+              <mxPoint x="1040" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_decision_tx" edge="1" parent="1" source="decision_node" target="ch_tx" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="ClickHouseTransactionSink">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_decision_alert_extract" edge="1" parent="1" source="decision_node" target="alert_extractor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_alert_ch" edge="1" parent="1" source="alert_extractor" target="ch_alerts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="AlertClickHouseSink">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_alert_kafka" edge="1" parent="1" source="alert_extractor" target="topic_alerts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="KafkaAlertSink">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="655" />
+              <mxPoint x="475" y="655" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tx_views" edge="1" parent="1" source="ch_tx" target="ch_views" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;" value="MV">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1370" y="505" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_alert_views" edge="1" parent="1" source="ch_alerts" target="ch_views" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;" value="MV">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_views_grafana" edge="1" parent="1" source="ch_views" target="grafana" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;strokeWidth=2;" value="SQL">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ch_tx_grafana" edge="1" parent="1" source="ch_tx" target="grafana" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;" value="dashboard queries">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="248" />
+              <mxPoint x="1500" y="783" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_trainer_minio" edge="1" parent="1" source="ml_trainer" target="minio" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" value="upload ONNX model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_minio_init" edge="1" parent="1" source="minio_init" target="minio" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;" value="create buckets">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_minio_ml" edge="1" parent="1" source="minio" target="ml_node" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;strokeWidth=2;" value="download model in open()">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_checkpoint_minio" edge="1" parent="1" source="checkpoint_node" target="minio" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;strokeWidth=2;" value="s3://flink-checkpoints&#xa;s3://flink-savepoints">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1035" y="840" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_submitter_flink" edge="1" parent="1" source="submitter" target="flink_box" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;" value="flink run">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="665" y="830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_model_ready_submitter" edge="1" parent="1" source="ml_trainer" target="submitter" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;dashed=1;" value="depends_on completed">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,323 @@
+networks:
+  fraud-net:
+    driver: bridge
+
+volumes:
+  kafka-data:
+  minio-data:
+  clickhouse-data:
+  flink-checkpoints:
+  grafana-data:
+
+services:
+  # 1. KAFKA (KRaft Mode - No ZooKeeper)
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: kafka
+    hostname: kafka
+    mem_limit: 768m
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    networks:
+      - fraud-net
+    healthcheck:
+      test: /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  kafka-init:
+    image: apache/kafka:3.7.0
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: [ "/bin/bash", "-c" ]
+    command:
+      - |
+        echo '==> Creating Kafka Topics...'
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic transactions --partitions 8 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic fraud-rules --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic fraud-alerts --partitions 3 --replication-factor 1
+        echo '==> Kafka Topics Created:'
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list
+        echo '==> Done.'
+    networks:
+      - fraud-net
+
+  # 2. MINIO (S3-Compatible Object Storage)
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    hostname: minio
+    mem_limit: 256m
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password123}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - fraud-net
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        mc alias set myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}
+        mc mb --ignore-existing myminio/ml-models
+        mc mb --ignore-existing myminio/flink-checkpoints
+        mc mb --ignore-existing myminio/flink-savepoints
+        echo '==> MinIO Buckets Created:'
+        mc ls myminio
+        echo '==> Done.'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password123}
+    networks:
+      - fraud-net
+
+  # 3. CLICKHOUSE (Columnar Analytics Database)
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: clickhouse
+    hostname: clickhouse
+    mem_limit: 1024m
+    ports:
+      - "8123:8123"
+      - "9004:9000"
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse123}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./clickhouse/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - fraud-net
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # 4. APACHE FLINK (JobManager + TaskManager with Python)
+  flink-jobmanager:
+    build:
+      context: ./flink-job
+      dockerfile: Dockerfile
+    container_name: flink-jobmanager
+    hostname: flink-jobmanager
+    mem_limit: 1536m
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password123}
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse123}
+      CEP_TRAVEL_DISTANCE_KM: ${CEP_TRAVEL_DISTANCE_KM:-150}
+      CEP_TRAVEL_WINDOW_MINUTES: ${CEP_TRAVEL_WINDOW_MINUTES:-15}
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.memory.process.size: 1536m
+        state.backend: hashmap
+        state.checkpoints.dir: s3://flink-checkpoints/checkpoints
+        state.savepoints.dir: s3://flink-savepoints/savepoints
+        s3.endpoint: http://minio:9000
+        s3.path.style.access: true
+        s3.access-key: ${MINIO_ROOT_USER:-admin}
+        s3.secret-key: ${MINIO_ROOT_PASSWORD:-password123}
+        execution.checkpointing.interval: 60000
+        execution.checkpointing.mode: EXACTLY_ONCE
+        taskmanager.numberOfTaskSlots: 8
+        parallelism.default: 8
+    depends_on:
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - fraud-net
+
+  flink-taskmanager:
+    build:
+      context: ./flink-job
+      dockerfile: Dockerfile
+    container_name: flink-taskmanager
+    hostname: flink-taskmanager
+    mem_limit: 3584m
+    command: taskmanager
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password123}
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse123}
+      CEP_TRAVEL_DISTANCE_KM: ${CEP_TRAVEL_DISTANCE_KM:-150}
+      CEP_TRAVEL_WINDOW_MINUTES: ${CEP_TRAVEL_WINDOW_MINUTES:-15}
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        state.backend: hashmap
+        state.checkpoints.dir: s3://flink-checkpoints/checkpoints
+        state.savepoints.dir: s3://flink-savepoints/savepoints
+        s3.endpoint: http://minio:9000
+        s3.path.style.access: true
+        s3.access-key: ${MINIO_ROOT_USER:-admin}
+        s3.secret-key: ${MINIO_ROOT_PASSWORD:-password123}
+        execution.checkpointing.interval: 60000
+        execution.checkpointing.mode: EXACTLY_ONCE
+        taskmanager.numberOfTaskSlots: 8
+        taskmanager.memory.process.size: 3072m
+        taskmanager.memory.managed.fraction: 0.1
+    depends_on:
+      - flink-jobmanager
+    networks:
+      - fraud-net
+
+  # 5. ML MODEL TRAINER (Runs once, trains and uploads model)
+  ml-trainer:
+    build:
+      context: ./ml-model
+      dockerfile: Dockerfile
+    container_name: ml-trainer
+    mem_limit: 1024m
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password123}
+      MINIO_BUCKET: ml-models
+      MODEL_NAME: fraud_detector.onnx
+    networks:
+      - fraud-net
+
+  # 6. FLINK JOB SUBMITTER (Submits Java Flink job after services ready)
+  flink-job-submitter:
+    build:
+      context: ./flink-job
+      dockerfile: Dockerfile
+    container_name: flink-job-submitter
+    depends_on:
+      flink-jobmanager:
+        condition: service_started
+      flink-taskmanager:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
+      ml-trainer:
+        condition: service_completed_successfully
+    entrypoint: [ "/bin/bash", "-c" ]
+    command:
+      - |
+        echo '==> Waiting for Flink cluster to be ready...'
+        sleep 30
+        echo '==> Submitting Java Fraud Detection Job...'
+        /opt/flink/bin/flink run \
+          --jobmanager flink-jobmanager:8081 \
+          -c com.frauddetection.FraudDetectionJob \
+          /opt/flink/jobs/fraud-detection-job-1.0.0.jar
+        echo '==> Job submitted successfully.'
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-password123}
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse123}
+      CEP_TRAVEL_DISTANCE_KM: ${CEP_TRAVEL_DISTANCE_KM:-150}
+      CEP_TRAVEL_WINDOW_MINUTES: ${CEP_TRAVEL_WINDOW_MINUTES:-15}
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+    networks:
+      - fraud-net
+
+  # ============================================================
+  # 7. DATA SIMULATOR (Continuous Python Kafka Producer)
+  # ============================================================
+  data-simulator:
+    build:
+      context: ./data-simulator
+      dockerfile: Dockerfile
+    container_name: data-simulator
+    mem_limit: 256m
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      TRANSACTIONS_TOPIC: transactions
+      RULES_TOPIC: fraud-rules
+      EVENTS_PER_SECOND: 500
+      FRAUD_RATIO: 0.01
+    networks:
+      - fraud-net
+    restart: unless-stopped
+
+  # 8. GRAFANA (Monitoring Dashboard)
+  grafana:
+    build:
+      context: ./grafana
+      dockerfile: Dockerfile
+    container_name: grafana
+    hostname: grafana
+    mem_limit: 256m
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - fraud-net
+    restart: unless-stopped

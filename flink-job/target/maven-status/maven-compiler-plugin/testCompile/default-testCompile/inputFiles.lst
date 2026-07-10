@@ -1,0 +1,4 @@
+/build/src/test/java/com/frauddetection/rules/RulesEngineModelTest.java
+/build/src/test/java/com/frauddetection/utils/HaversineUtilsTest.java
+/build/src/test/java/com/frauddetection/decision/DecisionMakerTest.java
+/build/src/test/java/com/frauddetection/serialization/TransactionDeserializerTest.java
