@@ -1,12 +1,12 @@
-# 🛡️ Real-Time Fraud Detection Platform
+# Real-Time Fraud Detection Platform
 
 A production-grade, real-time fraud detection system built with **Apache Kafka**, **Apache Flink (Java)**, **ClickHouse**, **MinIO**, and **Grafana**.
 
-## 🎯 Project Objectives
+## Project Objectives
 
 To build a robust streaming data platform for real-time bank transaction fraud detection using Apache Flink as the core streaming processing engine, and achieve near exactly-once semantics.
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 Data Simulator -> Kafka -> Flink -> ClickHouse -> Grafana
 - **Ingestion**: Apache Kafka for high throughput event ingestion (`transactions` and `fraud-rules` topics).
 Định hướng phát triển tương lai(Fraud Alerts Topic):
@@ -50,7 +50,7 @@ fraud-alerts topic -> Audit/Compliance Service
                                └────────────────┘
 ```
 
-## 🔍 Fraud Detection Engines & Decision Logic
+## Fraud Detection Engines & Decision Logic
 
 The core Flink job is composed of three parallel engines that converge into a **Decision Engine**:
 
@@ -72,7 +72,7 @@ The Decision Engine resolves conflicts using a strict hierarchy (**Rules > CEP >
 - **ML score > threshold** ➔ `ALERT`
 - **No anomaly detected** ➔ `APPROVE`
 
-## 🚀 System Performance & Evaluation Criteria
+## System Performance & Evaluation Criteria
 
 - **System Performance**:
   - Target Throughput: > 1000 events/s (Optimal: > 5000 events/s).
@@ -84,7 +84,7 @@ The Decision Engine resolves conflicts using a strict hierarchy (**Rules > CEP >
   - False Positive Rate (FPR): < 2%.
   - Rule Update Time: < 1 second.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Docker Desktop (with Docker Compose v2)
@@ -137,7 +137,7 @@ docker exec clickhouse clickhouse-client \
 docker compose down -v   # -v removes volumes (fresh start)
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── clickhouse/
@@ -196,7 +196,7 @@ docker compose down -v   # -v removes volumes (fresh start)
 └── README.md
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 Key environment variables (in `.env`):
 
@@ -214,7 +214,7 @@ Data simulator settings (in `docker-compose.yml`):
 | `EVENTS_PER_SECOND` | 1000 | Transaction generation rate |
 | `FRAUD_RATIO` | 0.03 | Percentage of fraudulent events |
 
-## 🛡️ Fault Tolerance & Exactly-Once Semantics
+## Fault Tolerance & Exactly-Once Semantics
 
 The system aims for near exactly-once processing:
 - **Flink Checkpointing**: Configured at 60s intervals using exactly-once mode with RocksDB state backend.
@@ -222,7 +222,7 @@ The system aims for near exactly-once processing:
 - **ClickHouse Sink**: Uses `CheckpointedFunction` to buffer records in Flink state; combined with `ReplacingMergeTree` engine for deduplication.
 - **Savepoints**: Supported for job upgrades — `flink savepoint` before deploying new versions.
 
-## 🛠️ Technical Stack
+## Technical Stack
 
 | Component | Technology | Version |
 |-----------|------------|---------|
